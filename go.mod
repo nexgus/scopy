@@ -5,7 +5,6 @@ go 1.24.2
 require (
 	github.com/alecthomas/kong v1.13.0
 	github.com/pkg/sftp v1.13.10
-	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.46.0
 	golang.org/x/term v0.38.0

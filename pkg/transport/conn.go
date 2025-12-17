@@ -10,7 +10,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
@@ -46,11 +45,7 @@ func Connect(host string, port uint16, username string, key string, forcePasswor
 			signer, err := signerFromKeyFile(keyPath)
 			if err == nil {
 				authMethods = append(authMethods, ssh.PublicKeys(signer))
-			} else {
-				logrus.Debugf("無法從 '%s' 載入私鑰, 將嘗試密碼認證: %v\n", key, err)
 			}
-		} else {
-			logrus.Debugf("無法展開路徑 '%s', 將嘗試密碼認證: %v\n", key, err)
 		}
 	}
 
@@ -119,7 +114,6 @@ func findDefaultKey() string {
 			if err == nil {
 				// 檢查檔案是否存在且可讀
 				if _, err := os.Stat(keyPath); err == nil {
-					logrus.Debugf("Found private key '%s'", keyPath)
 					return path
 				}
 			}

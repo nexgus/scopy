@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/sirupsen/logrus"
 )
 
 func IsDirectory(path string) bool {
@@ -15,7 +13,6 @@ func IsDirectory(path string) bool {
 			return false
 		}
 
-		logrus.Warnf("獲取路徑資訊失敗: %v", err)
 		return false
 	}
 
@@ -29,7 +26,6 @@ func PathExists(path string) bool {
 			return false
 		}
 
-		logrus.Warnf("獲取路徑資訊失敗: %v", err)
 		return false
 	}
 
