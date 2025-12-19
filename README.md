@@ -37,3 +37,21 @@ Flags:
     sudo chmod +x /usr/sbin/scopy-0.1.0-darwin-arm64
     sudo ln -s /usr/sbin/scopy-0.1.0-darwin-arm64 /usr/sbin/scopy
     ```
+
+## 範例
+-   複製本地檔案至遠端某一存在的目錄
+    ```batch
+    scopy configs\某個檔案 nexgus@10.90.1.128:Downloads
+    ```
+-   完整複製本地目錄至遠端的家 (home) 目錄
+    ```batch
+    scopy 某個目錄 nexgus@10.90.1.128:.
+    ```
+-   將遠端某個目錄完整複製到本地的目前位置, 且不要其中的某些子目錄及檔案
+    ```batch
+    scopy nexgus@10.90.1.128:myproj/scopy . -x .git -x .DS_Store --exclude bin
+    ```
+-   也可以使用萬用字元
+    ```batch
+    scopy nexgus@10.90.1.128:outputs test_result -x ckpt-*.pt -x dataset
+    ```
