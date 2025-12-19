@@ -4,6 +4,7 @@
 總之在 Windows 就是有一些煩人的事!
 
 ## Syntax
+```
 Usage: scopy <source> <target> [flags]
 
 A simplified scp tool (0.1.0 commit f4f051ff)
@@ -19,6 +20,7 @@ Flags:
   -k, --key=STRING               私鑰的檔案位置
       --force-password           強迫使用密碼
   -V, --version                  顯示版本訊息
+```
 
 ## 安裝
 -   Windows
