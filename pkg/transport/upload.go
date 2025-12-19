@@ -17,6 +17,7 @@ func Upload(
 	remotePath string,
 	localPath string,
 	excludes []string,
+	remoteSep string,
 ) error {
 	localInfo, err := os.Stat(localPath)
 	if err != nil {
@@ -27,22 +28,27 @@ func Upload(
 		if localPath == "." {
 			localPath, _ = os.Getwd()
 		}
-		return uploadLocalDir(client, remotePath, localPath, excludes)
+		return uploadLocalDir(client, remotePath, localPath, excludes, remoteSep)
 	} else {
 		if remoteInfo, err := client.Stat(remotePath); err != nil {
 			if !os.IsNotExist(err) {
-				return fmt.Errorf("取得遠方路徑 (%s) 資訊: %w", remotePath, err)
+				return fmt.Errorf("取得遠端路徑 (%s) 資訊: %w", remotePath, err)
 			}
 		} else if remoteInfo.IsDir() {
 			remotePath = filepath.Join(remotePath, filepath.Base(localPath))
 		}
 
-		fmt.Printf("複製本地檔案 %s\n", remotePath)
-		return uploadLocalFile(client, remotePath, localPath)
+		return uploadLocalFile(client, remotePath, localPath, remoteSep)
 	}
 }
 
-func uploadLocalDir(client *sftp.Client, remoteDir string, localDir string, excludes []string) error {
+func uploadLocalDir(
+	client *sftp.Client,
+	remoteDir string,
+	localDir string,
+	excludes []string,
+	remoteSep string,
+) error {
 	remoteRoot := remoteDir
 	if remoteRoot == "." {
 		remoteRoot = filepath.Base(localDir)
@@ -66,26 +72,25 @@ func uploadLocalDir(client *sftp.Client, remoteDir string, localDir string, excl
 		if relPath == "." {
 			if remoteStat, err := client.Stat(remoteRoot); err != nil {
 				if os.IsNotExist(err) {
-					fmt.Printf("建立遠地目錄 %s\n", remoteRoot)
-					if err := util.RemoteMkdirAll(client, remoteRoot); err != nil {
-						return fmt.Errorf("建立遠地目錄: %w", err)
+					fmt.Printf("建立遠端目錄 %s\n", remoteRoot)
+					if err := util.RemoteMkdirAll(client, remoteRoot, remoteSep); err != nil {
+						return fmt.Errorf("建立遠端目錄: %w", err)
 					}
 				} else {
-					return fmt.Errorf("取得遠地目錄資訊: %w", err)
+					return fmt.Errorf("取得遠端目錄資訊: %w", err)
 				}
 			} else if !remoteStat.IsDir() {
-				return fmt.Errorf("遠方路徑 (%s) 存在且不是目錄", remoteRoot)
+				return fmt.Errorf("遠端路徑 (%s) 存在且不是目錄", remoteRoot)
 			}
 		} else {
 			remotePath := filepath.Join(remoteRoot, relPath)
 			if localInfo.IsDir() {
-				fmt.Printf("複製本地目錄 %s\n", remotePath)
-				if err := util.RemoteMkdirAll(client, remotePath); err != nil {
-					return fmt.Errorf("建立遠地目錄: %w", err)
+				fmt.Printf("建立遠端目錄 %s\n", remotePath)
+				if err := util.RemoteMkdirAll(client, remotePath, remoteSep); err != nil {
+					return fmt.Errorf("建立遠端目錄: %w", err)
 				}
 			} else {
-				fmt.Printf("複製本地檔案 %s\n", remotePath)
-				if err := uploadLocalFile(client, remotePath, localPath); err != nil {
+				if err := uploadLocalFile(client, remotePath, localPath, remoteSep); err != nil {
 					return fmt.Errorf("上傳本地檔案: %w", err)
 				}
 			}
@@ -99,7 +104,10 @@ func uploadLocalDir(client *sftp.Client, remoteDir string, localDir string, excl
 	return nil
 }
 
-func uploadLocalFile(client *sftp.Client, remotePath string, localPath string) error {
+func uploadLocalFile(client *sftp.Client, remotePath string, localPath string, remoteSep string) error {
+	remotePath = util.ReplaceSepWith(remotePath, remoteSep)
+
+	fmt.Printf("開啟本地檔案 %s\n", localPath)
 	localFile, err := os.Open(localPath)
 	if err != nil {
 		return fmt.Errorf("開啟本地檔案 (%s): %w", localPath, err)
@@ -107,19 +115,20 @@ func uploadLocalFile(client *sftp.Client, remotePath string, localPath string) e
 	defer localFile.Close()
 
 	remoteDir := filepath.Dir(remotePath)
-	if err := util.RemoteMkdirAll(client, remoteDir); err != nil {
-		return fmt.Errorf("建立遠方目錄 (%s): %w", remoteDir, err)
+	if err := util.RemoteMkdirAll(client, remoteDir, remoteSep); err != nil {
+		return fmt.Errorf("建立遠端目錄 (%s): %w", remoteDir, err)
 	}
 
+	fmt.Printf("建立遠端檔案 %s\n", remotePath)
 	remoteFile, err := client.Create(remotePath)
 	if err != nil {
-		return fmt.Errorf("建立遠方檔案 (%s): %w", remotePath, err)
+		return fmt.Errorf("建立遠端檔案 (%s): %w", remotePath, err)
 	}
 	defer remoteFile.Close()
 
 	_, err = io.Copy(remoteFile, localFile)
 	if err != nil {
-		return fmt.Errorf("複製檔案至遠地: %w", err)
+		return fmt.Errorf("複製檔案至遠端: %w", err)
 	}
 
 	localStat, err := client.Stat(localPath)

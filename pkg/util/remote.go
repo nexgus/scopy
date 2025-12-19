@@ -36,25 +36,26 @@ func RemotePathExists(client *sftp.Client, path string) (bool, error) {
 	return true, nil
 }
 
-func RemoteMkdirAll(client *sftp.Client, remotePath string) error {
-	remotePath = strings.ReplaceAll(remotePath, "\\", "/")
+func RemoteMkdirAll(client *sftp.Client, remotePath string, remoteSep string) error {
+	// TODO: 尚不支援遠端是 Windows 的狀況
+	remotePath = ReplaceSepWith(remotePath, remoteSep)
 
 	// 如果是絕對路徑, pathParts 的第一個素是空字串, 如 ["", "path", "starts", "from", "root"]
-	pathParts := strings.Split(remotePath, "/")
+	pathParts := strings.Split(remotePath, remoteSep)
 	if pathParts[0] == "" {
-		pathParts[0] = "/"
+		pathParts[0] = remoteSep
 	}
 
 	// 遞迴檢查和建立
 	remoteDir := ""
 	for _, part := range pathParts {
 		remoteDir = filepath.Join(remoteDir, part)
-		if remoteDir == "/" || remoteDir == "." {
+		if remoteDir == remoteSep || remoteDir == "." {
 			continue
 		}
 
 		if exist, err := RemotePathExists(client, remoteDir); err != nil {
-			return fmt.Errorf("檢查遠地路徑是否存在: %w", err)
+			return fmt.Errorf("檢查遠端路徑是否存在: %w", err)
 		} else if !exist {
 			if err := client.Mkdir(remoteDir); err != nil {
 				return err

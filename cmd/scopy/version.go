@@ -7,9 +7,9 @@ var (
 )
 
 const (
-	VersionMajor   = 0
-	VersionMinor   = 1
-	VersionPatch   = 0
-	VersionSuffix  = ""
-	VersionString  = "0.1.0"
+	VersionMajor  = 0
+	VersionMinor  = 1
+	VersionPatch  = 1
+	VersionSuffix = ""
+	VersionString = "0.1.1"
 )

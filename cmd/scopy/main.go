@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	tp "scopy/pkg/transport"
 	"scopy/pkg/util"
@@ -16,7 +17,7 @@ import (
 var args struct {
 	Source        string           `arg:"" name:"source" help:"來源路徑"`
 	Target        string           `arg:"" name:"target" help:"目的路徑"`
-	Excludes      []string         `short:"x" help:"排除的檔案或目錄模式 (pattern), 可用萬用字元"`
+	Exclude       []string         `short:"x" help:"排除的檔案或目錄模式 (pattern), 可用萬用字元"`
 	Port          uint16           `default:"22" help:"SSH 埠號. 預設 22"`
 	Key           string           `short:"k" help:"私鑰的檔案位置"`
 	ForcePassword bool             `help:"強迫使用密碼"`
@@ -68,6 +69,15 @@ func main() {
 	} else {
 		defer client.Close()
 
+		path, err := client.RealPath(".")
+		if err != nil {
+			exit("嘗試檢查遠端時發生錯誤: %s.", err)
+		}
+		remoteSep := "\\"
+		if strings.HasPrefix(path, "/") {
+			remoteSep = "/"
+		}
+
 		if isDownload {
 			if _, err := client.Stat(srcInfo.Path); err != nil {
 				if os.IsNotExist(err) {
@@ -76,7 +86,7 @@ func main() {
 					exit("取得遠端路徑資訊時發生錯誤: %s.", err)
 				}
 			} else {
-				if err := tp.Download(client, srcInfo.Path, dstInfo.Path, args.Excludes); err != nil {
+				if err := tp.Download(client, srcInfo.Path, dstInfo.Path, args.Exclude, remoteSep); err != nil {
 					exit("下載時發生錯誤: %s.", err)
 				}
 			}
@@ -85,7 +95,7 @@ func main() {
 				exit("本地路徑 %s 不存在.", srcInfo.Path)
 			}
 
-			if err := tp.Upload(client, dstInfo.Path, srcInfo.Path, args.Excludes); err != nil {
+			if err := tp.Upload(client, dstInfo.Path, srcInfo.Path, args.Exclude, remoteSep); err != nil {
 				exit("上傳時發生錯誤: %s.", err)
 			}
 		}

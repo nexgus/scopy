@@ -4,7 +4,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+func ReplaceSepWith(src string, sep string) string {
+	srcSep := "/"
+	if sep == "/" {
+		srcSep = "\\"
+	}
+
+	return strings.ReplaceAll(src, srcSep, sep)
+}
 
 func isExcluded(base string, excludes []string) bool {
 	for _, excludePattern := range excludes {

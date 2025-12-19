@@ -18,6 +18,7 @@ func Download(
 	remotePath string,
 	localPath string,
 	excludes []string,
+	remoteSep string,
 ) error {
 	remoteInfo, err := client.Stat(remotePath)
 	if err != nil {
@@ -25,7 +26,7 @@ func Download(
 	}
 
 	if remoteInfo.IsDir() {
-		return downloadRemoteDir(client, remotePath, localPath, excludes)
+		return downloadRemoteDir(client, remotePath, localPath, excludes, remoteSep)
 	} else {
 		if localInfo, err := os.Stat(localPath); err != nil {
 			if !os.IsNotExist(err) {
@@ -35,15 +36,19 @@ func Download(
 			localPath = filepath.Join(localPath, filepath.Base(remotePath))
 		}
 
-		fmt.Printf("複製遠地檔案 %s\n", remotePath)
-		return downloadRemoteFile(client, remotePath, localPath)
+		return downloadRemoteFile(client, remotePath, localPath, remoteSep)
 	}
 }
 
-func createLocalDir(client *sftp.Client, remoteDir string, localDir string) error {
+func createLocalDir(
+	client *sftp.Client,
+	remoteDir string,
+	localDir string,
+	remoteSep string,
+) error {
 	remoteStat, err := client.Stat(remoteDir)
 	if err != nil {
-		return fmt.Errorf("取得遠地目錄資訊: %w", err)
+		return fmt.Errorf("取得遠端目錄資訊: %w", err)
 	}
 
 	mode := remoteStat.Mode()
@@ -62,7 +67,10 @@ func downloadRemoteDir(
 	remoteDir string,
 	localDir string,
 	excludes []string,
+	remoteSep string,
 ) error {
+	remoteDir = util.ReplaceSepWith(remoteDir, remoteSep)
+
 	localRoot := localDir
 	if localRoot == "." {
 		localRoot = filepath.Base(remoteDir)
@@ -91,26 +99,25 @@ func downloadRemoteDir(
 				}
 			} else {
 				fmt.Printf("建立本地目錄 %s\n", localRoot)
-				if err := createLocalDir(client, remotePath, localRoot); err != nil {
+				if err := createLocalDir(client, remotePath, localRoot, remoteSep); err != nil {
 					return fmt.Errorf("建立本地目錄: %w", err)
 				}
 			}
 		} else {
 			remoteStat, err := client.Stat(remotePath)
 			if err != nil {
-				return fmt.Errorf("取得遠地目錄資訊: %w", err)
+				return fmt.Errorf("取得遠端目錄資訊: %w", err)
 			}
 
 			localPath := filepath.Join(localRoot, relPath)
 			if remoteStat.IsDir() {
-				fmt.Printf("複製遠地目錄 %s\n", remotePath)
-				if err := createLocalDir(client, remotePath, localPath); err != nil {
+				fmt.Printf("建立本地目錄 %s\n", localPath)
+				if err := createLocalDir(client, remotePath, localPath, remoteSep); err != nil {
 					return fmt.Errorf("建立本地目錄: %w", err)
 				}
 			} else {
-				fmt.Printf("複製遠地檔案 %s\n", remotePath)
-				if err := downloadRemoteFile(client, remotePath, localPath); err != nil {
-					return fmt.Errorf("下載遠地檔案: %w", err)
+				if err := downloadRemoteFile(client, remotePath, localPath, remoteSep); err != nil {
+					return fmt.Errorf("下載遠端檔案: %w", err)
 				}
 			}
 		}
@@ -119,10 +126,18 @@ func downloadRemoteDir(
 	return nil
 }
 
-func downloadRemoteFile(client *sftp.Client, remotePath string, localPath string) error {
+func downloadRemoteFile(
+	client *sftp.Client,
+	remotePath string,
+	localPath string,
+	remoteSep string,
+) error {
+	remotePath = util.ReplaceSepWith(remotePath, remoteSep)
+
+	fmt.Printf("開啟遠端檔案 %s\n", localPath)
 	remoteFile, err := client.Open(remotePath)
 	if err != nil {
-		return fmt.Errorf("開啟遠地檔案: %w", err)
+		return fmt.Errorf("開啟遠端檔案: %w", err)
 	}
 	defer remoteFile.Close()
 
@@ -130,6 +145,7 @@ func downloadRemoteFile(client *sftp.Client, remotePath string, localPath string
 		return fmt.Errorf("建立本地目錄: %w", err)
 	}
 
+	fmt.Printf("建立本地檔案 %s\n", localPath)
 	localFile, err := os.Create(localPath)
 	if err != nil {
 		return fmt.Errorf("建立本地檔案: %w", err)
